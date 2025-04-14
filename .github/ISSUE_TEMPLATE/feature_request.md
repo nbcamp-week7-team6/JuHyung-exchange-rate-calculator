@@ -20,6 +20,3 @@ assignees: ''
 
 ## 📌 참고 사항
 <!-- 참고할 사항이 있다면 작성 -->
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
