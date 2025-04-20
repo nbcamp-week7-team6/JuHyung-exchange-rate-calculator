@@ -12,7 +12,28 @@ class ViewController: UIViewController {
 
     private var currencyRates: [CurrencyRate] = []
     private let apiService = APIService()
-    private let searchBar = UISearchBar()
+    private let viewModel = ViewModel()
+
+
+    private lazy var searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.delegate = self
+        searchBar.placeholder = "통화 검색"
+        searchBar.showsCancelButton = true
+        return searchBar
+    }()
+
+    //아 이거 변수명 어렵다
+    private let noText: UILabel = {
+        let label = UILabel()
+        label.text = "검색 결과 없음"
+        label.textColor = .gray
+        label.font = .systemFont(ofSize: 16)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
 
 
     override func viewDidLoad() {
@@ -21,6 +42,12 @@ class ViewController: UIViewController {
         configureUI()
         fetchCurrentRateData()
 
+    }
+
+
+    func setData(_ data: [CurrencyRate]) {
+        viewModel.setRates(data)
+        tableView.reloadData()
     }
 
 
@@ -66,13 +93,14 @@ class ViewController: UIViewController {
             self.currencyRates = mappingData.sorted(by: {$0.currencyCode < $1.currencyCode})
 
             //  MARK: -- 문제 발견 guard let 을 쓰니 map과정에서 return nil 발생
-//            let mappingData = result.rates.map{ (key, value) in
-//                guard let countryName = CountryMapping[key] else {
-//                    return
-//                }
-//                CurrencyRate(currencyCode: key, country: countryName, rate: value)}
-//            self.currencyRates = mappingData.sorted(by: {$0.currencyCode < $1.currencyCode})
+            //            let mappingData = result.rates.map{ (key, value) in
+            //                guard let countryName = CountryMapping[key] else {
+            //                    return
+            //                }
+            //                CurrencyRate(currencyCode: key, country: countryName, rate: value)}
+            //            self.currencyRates = mappingData.sorted(by: {$0.currencyCode < $1.currencyCode})
             DispatchQueue.main.async(){
+                self.setData(self.currencyRates)
                 self.tableView.reloadData()
             }
 
@@ -90,14 +118,14 @@ class ViewController: UIViewController {
         view.addSubview(tableView)
         view.addSubview(searchBar)
 
-        tableView.snp.makeConstraints{
-            $0.top.equalTo(searchBar.snp.bottom)
-            $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
-        }
-
         searchBar.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
             $0.leading.trailing.equalToSuperview()
+        }
+
+        tableView.snp.makeConstraints{
+            $0.top.equalTo(searchBar.snp.bottom)
+            $0.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
         }
     }
 }
@@ -113,7 +141,10 @@ extension ViewController: UITableViewDelegate {
 extension ViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        currencyRates.count
+//        currencyRates.count
+            let count = viewModel.filteredRates.count
+            tableView.backgroundView = (count == 0) ? noText : nil
+            return count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -121,9 +152,31 @@ extension ViewController: UITableViewDataSource {
             return UITableViewCell()
         }
 
-        let item = currencyRates[indexPath.row]
+//        let item = currencyRates[indexPath.row]
+        let item = viewModel.filteredRates[indexPath.row]
         cell.configure(currencyCode: item.currencyCode, rate: item.rate)
         return cell
+    }
+}
+
+extension ViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        viewModel.filterRates(with: searchText)
+        tableView.reloadData()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        viewModel.filterRates(with: searchBar.text ?? "")
+        tableView.reloadData()
+        searchBar.resignFirstResponder()
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""
+        viewModel.restoreRates()
+        tableView.reloadData()
+        searchBar.resignFirstResponder()
     }
 }
 
