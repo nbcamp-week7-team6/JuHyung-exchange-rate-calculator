@@ -44,10 +44,10 @@ struct ModelData: Decodable {
 
 
 struct CurrencyRate {
-    let countryCode: String  // 예: "USD"
+    let currencyCode: String  // 예: "USD"
+    let country: String
     let rate: Double         // 예: 1.0
 }
-
 
 let CountryMapping: [String: String] = [
     "USD": "미국",
