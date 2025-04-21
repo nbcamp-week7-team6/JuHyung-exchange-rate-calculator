@@ -19,27 +19,14 @@
 
 import Foundation
 
-//struct ExchangeRateMeta: Codable {
-//    let result: String
-//    let timeLastUpdateUnix: Int
-//    let timeLastUpdateUtc: String
-//    let timeNextUpdateUnix: Int
-//    let timeNextUpdateUtc: String
-//    let timeEolUnix: Int
-//
-//    enum CodingKeys: String, CodingKey {
-//        case result
-//        case timeLastUpdateUnix = "time_last_update_unix"
-//        case timeLastUpdateUtc = "time_last_update_utc"
-//        case timeNextUpdateUnix = "time_next_update_unix"
-//        case timeNextUpdateUtc = "time_next_update_utc"
-//        case timeEolUnix = "time_eol_unix"
-//    }
-//}
-
-
 struct ModelData: Decodable {
     let rates: [String: Double]
+    let baseCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case rates
+        case baseCode = "base_code"
+    }
 }
 
 
@@ -47,6 +34,7 @@ struct CurrencyRate {
     let currencyCode: String  // 예: "USD"
     let country: String
     let rate: Double         // 예: 1.0
+
 }
 
 let CountryMapping: [String: String] = [

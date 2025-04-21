@@ -10,6 +10,7 @@ class ViewModel {
 
     private var allRates: [CurrencyRate] = []
     private(set) var filteredRates: [CurrencyRate] = []
+    var baseCurrency: CurrencyRate?
 
     func setRates(_ rates: [CurrencyRate]) {
         allRates = rates
@@ -33,5 +34,4 @@ class ViewModel {
     func restoreRates() {
         filteredRates = allRates
     }
-
 }

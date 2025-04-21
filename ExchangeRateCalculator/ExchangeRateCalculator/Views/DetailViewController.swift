@@ -11,10 +11,10 @@ import SnapKit
 
 class DetailViewController: UIViewController {
 
-    private let viewModel: DetailViewModel
+    private let detailViewModel: DetailViewModel
 
     init(viewModel: DetailViewModel) {
-        self.viewModel = viewModel
+        self.detailViewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -49,7 +49,7 @@ class DetailViewController: UIViewController {
     private lazy var currencyLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 24, weight: .bold)
-        label.text = viewModel.currencyCode
+        label.text = detailViewModel.currencyCode
         return label
     }()
 
@@ -57,7 +57,7 @@ class DetailViewController: UIViewController {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16)
         label.textColor = .gray
-        label.text = viewModel.countryName
+        label.text = detailViewModel.countryName
         return label
     }()
 
@@ -93,7 +93,7 @@ class DetailViewController: UIViewController {
     }()
 
     @objc func convertButtonTapped() {
-        guard let text = amountTextField.text, text.isEmpty else {
+        guard let text = amountTextField.text, !text.isEmpty else {
             showAlert(title: "오류", message: "금액을 입력해주세요")
             return
         }
@@ -101,8 +101,8 @@ class DetailViewController: UIViewController {
             showAlert(title: "오류", message: "숫자를 입력해주세요")
             return
         }
-        let result = DetailViewModel.exchangeRate(input: amount, basedCurrency: <#T##Double#>, counterCurreny: <#T##Double#>)
-        resultLabel.text = ""
+        let result = detailViewModel.exchangeRate(inputNumber: amount)
+        resultLabel.text = result
     }
 
     func showAlert(title: String, message: String) {
