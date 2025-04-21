@@ -13,6 +13,14 @@ class ViewController: UIViewController {
     private var currencyRates: [CurrencyRate] = []
     private let apiService = APIService()
     private let viewModel = ViewModel()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "환율 정보"
+        label.textColor = .black
+        label.font = .systemFont(ofSize: 32, weight: .bold)
+        return label
+    }()
 
 
     private lazy var searchBar: UISearchBar = {
@@ -34,6 +42,13 @@ class ViewController: UIViewController {
         return label
     }()
 
+    private lazy var tableView: UITableView = {
+        let tableView = UITableView()
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.id)
+        return tableView
+    }()
 
 
     override func viewDidLoad() {
@@ -51,13 +66,7 @@ class ViewController: UIViewController {
     }
 
 
-    private lazy var tableView: UITableView = {
-        let tableView = UITableView()
-        tableView.delegate = self
-        tableView.dataSource = self
-        tableView.register(TableViewCell.self, forCellReuseIdentifier: TableViewCell.id)
-        return tableView
-    }()
+
 
     private func fetchCurrentRateData() {
         let urlComponents = URLComponents(string: "https://open.er-api.com/v6/latest/USD")
@@ -115,8 +124,11 @@ class ViewController: UIViewController {
     }
 
     private func configureUI() {
-        view.addSubview(tableView)
-        view.addSubview(searchBar)
+
+        //titleLabel 보류
+
+        [searchBar,tableView]
+            .forEach{view.addSubview($0)}
 
         searchBar.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide)
@@ -134,6 +146,13 @@ extension ViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         60
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let selectedTrail = viewModel.filteredRates[indexPath.row]
+        let detailVM = DetailViewModel(rate: selectedTrail)
+        let detailVC = DetailViewController(viewModel: detailVM)
+        self.navigationController?.pushViewController(detailVC, animated: true)
     }
 
 }
