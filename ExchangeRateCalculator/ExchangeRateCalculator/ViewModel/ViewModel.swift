@@ -9,6 +9,7 @@ import Foundation
 class ViewModel {
 
     private var allRates: [CurrencyRate] = []
+    //viewModel의 접근제어 set 내부에서만 쓰기 가능 외부 읽기 x
     private(set) var filteredRates: [CurrencyRate] = []
     var baseCurrency: CurrencyRate?
 
