@@ -6,29 +6,32 @@
 //
 
 struct DetailViewModel {
-    private let rate: CurrencyRate
+    private let targetCurrency: CurrencyRate
+    private let baseCurrency: CurrencyRate
 
 
-    init(rate: CurrencyRate) {
-        self.rate = rate
+    init(targetCurrency: CurrencyRate, baseCurrency: CurrencyRate) {
+        self.targetCurrency = targetCurrency
+        self.baseCurrency = baseCurrency
     }
     
     var currencyCode: String {
-        return rate.currencyCode
+        return targetCurrency.currencyCode
     }
 
     var countryName: String {
-        return rate.country
+        return targetCurrency.country
     }
 
     var formattedRate: String {
-        return String(format: "%.4f", rate.rate)
+        return String(format: "%.4f", targetCurrency.rate)
     }
-    //
-//    static func exchangeRate(input: Double, basedCurrency: Double, counterCurreny: Double) -> String {
-//        //변환 결과 = 입력 금액 × 대상 통화 환율 / 기준 통화 환율
-//        let resultRate = (input * counterCurreny) / basedCurrency
-//        let formattedResult = String(format: "%.2f", resultRate)
-//        return "$\(input) -> \(formattedResult) \(currencycode)"
-//    }
+
+
+    func exchangeRate(inputNumber: Double) -> String {
+        //변환 결과 = 입력 금액 × 대상 통화 환율 / 기준 통화 환율
+        let resultRate = (inputNumber * targetCurrency.rate) / baseCurrency.rate
+        let formattedResult = String(format: "%.2f", resultRate)
+        return "$\(String(format: "%.2f", inputNumber)) -> \(formattedResult) \(targetCurrency.currencyCode)"
+    }
 }

@@ -89,6 +89,11 @@ class ViewController: UIViewController {
                 return
             }
 
+            //미국 기준 환율 가져오기
+            let baseCode = result.baseCode
+            guard let baseRate = result.rates[baseCode] else { return }
+            viewModel.baseCurrency = CurrencyRate(currencyCode: baseCode, country: "USD", rate: baseRate)
+
             let mappingData = result.rates.map{ (key, value) in
                 let countryName: String
                 if let name = CountryMapping[key] {
@@ -150,7 +155,13 @@ extension ViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedTrail = viewModel.filteredRates[indexPath.row]
-        let detailVM = DetailViewModel(rate: selectedTrail)
+
+        guard let baseCurrency = viewModel.baseCurrency else {
+                print("기준 통화 없음")
+                return
+            }
+
+        let detailVM = DetailViewModel(targetCurrency: selectedTrail, baseCurrency: baseCurrency)
         let detailVC = DetailViewController(viewModel: detailVM)
         self.navigationController?.pushViewController(detailVC, animated: true)
     }
