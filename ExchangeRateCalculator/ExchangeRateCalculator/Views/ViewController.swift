@@ -13,9 +13,9 @@ class ViewController: UIViewController {
     private var currencyRates: [CurrencyRate] = []
     private let viewModel = ViewModel()
 
-    //VM에서 변경된 상태를 사용
+    //VM에서 변경된 상태(state)를 사용
     private var allRates: [CurrencyRate] = []
-    private var filteredRates: [CurrencyRate] = []
+//    private var filteredRates: [CurrencyRate] = []
     private var baseCurrency: CurrencyRate?
 
     private let titleLabel: UILabel = {
@@ -72,13 +72,11 @@ class ViewController: UIViewController {
                     self?.showAlert(title: "오류", message: alertMessage)
                     return
                 }
-                self?.filteredRates = state.filteredRates
+//                self?.filteredRates = state.filteredRates
                 self?.tableView.backgroundView = state.filteredRates.isEmpty ? self?.noText : nil
                 self?.tableView.reloadData()
             }
         }
-
-
     }
     //    func setData(_ data: [CurrencyRate]) {
     //        viewModel.setRates(data)
@@ -118,6 +116,7 @@ extension ViewController: UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
         let selectedTrail = viewModel.filteredRates[indexPath.row]
 
         guard let baseCurrency = viewModel.baseCurrency else {
@@ -136,7 +135,7 @@ extension ViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         //        currencyRates.count
-        return filteredRates.count
+        return viewModel.filteredRates.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -145,7 +144,13 @@ extension ViewController: UITableViewDataSource {
         }
 
         let item = viewModel.filteredRates[indexPath.row]
-        cell.configure(currencyCode: item.currencyCode, rate: item.rate)
+        let isBookmarked = CoreDataManager.shared.returnBookMark(code: item.currencyCode)
+        cell.configure(currencyCode: item.currencyCode, rate: item.rate, fromVCBookMarkTapped: isBookmarked)
+
+        cell.closureBookmarkTapped = { [weak self] in
+            guard let self = self else {return}
+            self.viewModel.toggleBookmark(for: item.currencyCode)
+        }
         return cell
     }
 }

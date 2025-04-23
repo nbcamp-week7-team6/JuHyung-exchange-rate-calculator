@@ -23,6 +23,7 @@ struct ExchangeState {
     var filteredRates: [CurrencyRate]
     var baseCurrency: CurrencyRate?
     var errorMessage: String?
+    //    let isBookmarked: Bool
 }
 
 
@@ -31,6 +32,7 @@ class ViewModel: ViewModelProtocol {
     typealias Action = ExchangeAction
     typealias State = ExchangeState
     private let apiService = APIService()
+    let coreDataManager = CoreDataManager.shared
 
     var action: ((ExchangeAction) -> Void)?
     var stateChanged: ((ExchangeState) -> Void)?
@@ -128,10 +130,49 @@ class ViewModel: ViewModelProtocol {
     }
 
     private func applyState() {
-        let state = ExchangeState(
-            filteredRates: filteredRates,
-            baseCurrency: baseCurrency
-        )
-        self.stateChanged?(state)
+        DispatchQueue.main.async {
+            let state = ExchangeState(
+                filteredRates: self.filteredRates,
+                baseCurrency: self.baseCurrency
+                //            isBookmarked:
+            )
+            self.stateChanged?(state)
+        }
     }
+
+    func fetchAndSortRatesFromCoreData() {
+        let bookmarkedCodes = coreDataManager.fetchCurrencyCodeSortedByFavorites().compactMap { $0.currencyCode }
+
+        let sorted = allRates.sorted {
+            let isFirst = bookmarkedCodes.contains($0.currencyCode)
+            let isSecond = bookmarkedCodes.contains($1.currencyCode)
+
+            if isFirst != isSecond {
+                return isFirst
+            } else {
+                return $0.currencyCode < $1.currencyCode
+            }
+        }
+
+        self.filteredRates = sorted
+        DispatchQueue.main.async {
+                self.applyState()
+            }
+    }
+
+    func toggleBookmark(for code: String) {
+        if coreDataManager.returnBookMark(code: code) {
+            coreDataManager.deleteCurrencyCode(code)
+            print("즐찾 해제")
+        } else {
+            coreDataManager.saveCurrencyCode(code)
+            print("즐찾 성공")
+        }
+
+        fetchAndSortRatesFromCoreData()
+    }
+
+
+
+
 }
