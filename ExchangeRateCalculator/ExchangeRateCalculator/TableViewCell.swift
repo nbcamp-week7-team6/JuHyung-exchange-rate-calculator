@@ -11,6 +11,10 @@ class TableViewCell: UITableViewCell {
 
     static let id = "TableViewCell"
 
+//    private let cellViewModel: CellViewModel
+    var closureBookmarkTapped: (() -> Void)?
+
+
     private let currencyCodeLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .medium)
@@ -32,10 +36,26 @@ class TableViewCell: UITableViewCell {
         return label
     }()
 
-    private let labelStackView: UIStackView = {
+    private let leftLabelStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.spacing = 4
+        return stackView
+    }()
+
+    private let bookMarkImageView: UIImageView = {
+        let uiImageView = UIImageView()
+        uiImageView.image = UIImage(systemName: "star")
+        uiImageView.tintColor = .systemYellow
+        uiImageView.contentMode = .scaleAspectFit
+        uiImageView.isUserInteractionEnabled = true
+        return uiImageView
+    }()
+
+    private let rightItemsStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 8
         return stackView
     }()
 
@@ -54,20 +74,23 @@ class TableViewCell: UITableViewCell {
         contentView.addSubview(backView)
 
         [currencyCodeLabel, countryLabel]
-            .forEach{ labelStackView.addArrangedSubview($0)}
+            .forEach{ leftLabelStackView.addArrangedSubview($0)}
 
-        [labelStackView, rateLabel]
+        [rateLabel, bookMarkImageView]
+            .forEach{ rightItemsStackView.addArrangedSubview($0)}
+
+        [leftLabelStackView, rightItemsStackView]
             .forEach{ backView.addSubview($0)}
 
-        labelStackView.snp.makeConstraints {
+        leftLabelStackView.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(16)
             $0.centerY.equalToSuperview()
         }
 
-        rateLabel.snp.makeConstraints{
+        rightItemsStackView.snp.makeConstraints{
             $0.trailing.equalToSuperview().inset(16)
             $0.centerY.equalToSuperview()
-            $0.leading.greaterThanOrEqualTo(labelStackView.snp.trailing).offset(16)
+            $0.leading.greaterThanOrEqualTo(leftLabelStackView.snp.trailing).offset(16)
             $0.width.equalTo(120)
         }
 
@@ -75,15 +98,42 @@ class TableViewCell: UITableViewCell {
             $0.edges.equalToSuperview()
             $0.height.equalTo(60)
         }
+
+        bookMarkImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(bookMarkTapped)))
     }
 
-    func configure(currencyCode: String, rate: Double) {
-        guard let countryName = CountryMapping[currencyCode] else {
-            return print("매핑된 정보 없습니다.")
-        }
-        currencyCodeLabel.text = currencyCode
-        countryLabel.text = countryName
-        rateLabel.text = String(format: "%.4f", rate)
+    private var isBookmarked = false
+
+    func toggleBookmark(is toggled: Bool){
+        let imageState = toggled ? "star.fill" : "star"
+        bookMarkImageView.image = UIImage(systemName: imageState)
     }
+
+
+    @objc private func bookMarkTapped(){
+        isBookmarked.toggle()
+        toggleBookmark(is: isBookmarked)
+        closureBookmarkTapped?()
+    }
+
+//    func configure(currencyInnerItem: CurrencyRate, fromVCBookMarkTapped: Bool) {
+//        guard let countryName = CountryMapping[currencyInnerItem.currencyCode] else {
+//            return print("매핑된 정보 없습니다.")
+//        }
+//        currencyCodeLabel.text = currencyInnerItem.currencyCode
+//        countryLabel.text = countryName
+//        rateLabel.text = String(format: "%.4f", currencyInnerItem.rate)
+//        toggleBookmark(is: fromVCBookMarkTapped)
+//        self.isBookmarked = fromVCBookMarkTapped
+//    }
+
+    func configure(currencyCode: String, rate: Double, fromVCBookMarkTapped: Bool) {
+        currencyCodeLabel.text = currencyCode
+        countryLabel.text = CountryMapping[currencyCode] ?? ""
+        rateLabel.text = String(format: "%.4f", rate)
+        toggleBookmark(is: fromVCBookMarkTapped)
+        self.isBookmarked = fromVCBookMarkTapped
+    }
+
 }
 

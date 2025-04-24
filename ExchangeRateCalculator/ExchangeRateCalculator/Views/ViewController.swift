@@ -11,9 +11,13 @@ import SnapKit
 class ViewController: UIViewController {
 
     private var currencyRates: [CurrencyRate] = []
-    private let apiService = APIService()
     private let viewModel = ViewModel()
-    
+
+    //VM에서 변경된 상태(state)를 사용
+    private var allRates: [CurrencyRate] = []
+//    private var filteredRates: [CurrencyRate] = []
+    private var baseCurrency: CurrencyRate?
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "환율 정보"
@@ -27,7 +31,7 @@ class ViewController: UIViewController {
         let searchBar = UISearchBar()
         searchBar.delegate = self
         searchBar.placeholder = "통화 검색"
-        searchBar.showsCancelButton = true
+        searchBar.showsCancelButton = false
         return searchBar
     }()
 
@@ -55,71 +59,29 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .white
         configureUI()
-        fetchCurrentRateData()
-
+        modelSubscriber()
+        viewModel.action?(.fetch)
     }
 
+    func modelSubscriber(){
+        viewModel.stateChanged = {[weak self] state in
 
-    func setData(_ data: [CurrencyRate]) {
-        viewModel.setRates(data)
-        tableView.reloadData()
-    }
-
-
-
-
-    private func fetchCurrentRateData() {
-        let urlComponents = URLComponents(string: "https://open.er-api.com/v6/latest/USD")
-        //        urlComponents?.queryItems = self.queryItems
-
-        print(#fileID, #function, #line, "print urlComponents?.url: \(String(describing: urlComponents?.url))")
-        guard let url = urlComponents?.url else {
-            print("잘못된 url")
-            return
-        }
-
-        apiService.fetchData(url: url) { [weak self] (result: ModelData?) in
-            guard let self else { return }
-
-
-            guard let result else {
-                DispatchQueue.main.async {
-                    self.showAlert(title: "오류", message: "데이터를 불러올 수 없습니다.")
+            DispatchQueue.main.async{
+                if let alertMessage = state.errorMessage, alertMessage.isEmpty  {
+                    //Chain the optional using '?' to access member 'showAlert' only for non-'nil' base values
+                    self?.showAlert(title: "오류", message: alertMessage)
+                    return
                 }
-                return
+//                self?.filteredRates = state.filteredRates
+                self?.tableView.backgroundView = state.filteredRates.isEmpty ? self?.noText : nil
+                self?.tableView.reloadData()
             }
-
-            //미국 기준 환율 가져오기
-            let baseCode = result.baseCode
-            guard let baseRate = result.rates[baseCode] else { return }
-            viewModel.baseCurrency = CurrencyRate(currencyCode: baseCode, country: "USD", rate: baseRate)
-
-            let mappingData = result.rates.map{ (key, value) in
-                let countryName: String
-                if let name = CountryMapping[key] {
-                    countryName = name
-                } else {
-                    print("일치하는 도시 코드 없음")
-                    countryName = "일치하는 도시 코드 없음"
-                }
-                return CurrencyRate(currencyCode: key, country: countryName, rate: value)
-            }
-            self.currencyRates = mappingData.sorted(by: {$0.currencyCode < $1.currencyCode})
-
-            //  MARK: -- 문제 발견 guard let 을 쓰니 map과정에서 return nil 발생
-            //            let mappingData = result.rates.map{ (key, value) in
-            //                guard let countryName = CountryMapping[key] else {
-            //                    return
-            //                }
-            //                CurrencyRate(currencyCode: key, country: countryName, rate: value)}
-            //            self.currencyRates = mappingData.sorted(by: {$0.currencyCode < $1.currencyCode})
-            DispatchQueue.main.async(){
-                self.setData(self.currencyRates)
-                self.tableView.reloadData()
-            }
-
         }
     }
+    //    func setData(_ data: [CurrencyRate]) {
+    //        viewModel.setRates(data)
+    //        tableView.reloadData()
+    //    }
 
     func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
@@ -154,12 +116,13 @@ extension ViewController: UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
         let selectedTrail = viewModel.filteredRates[indexPath.row]
 
         guard let baseCurrency = viewModel.baseCurrency else {
-                print("기준 통화 없음")
-                return
-            }
+            print("기준 통화 없음")
+            return
+        }
 
         let detailVM = DetailViewModel(targetCurrency: selectedTrail, baseCurrency: baseCurrency)
         let detailVC = DetailViewController(viewModel: detailVM)
@@ -171,10 +134,8 @@ extension ViewController: UITableViewDelegate {
 extension ViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        currencyRates.count
-            let count = viewModel.filteredRates.count
-            tableView.backgroundView = (count == 0) ? noText : nil
-            return count
+        //        currencyRates.count
+        return viewModel.filteredRates.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -182,9 +143,14 @@ extension ViewController: UITableViewDataSource {
             return UITableViewCell()
         }
 
-//        let item = currencyRates[indexPath.row]
         let item = viewModel.filteredRates[indexPath.row]
-        cell.configure(currencyCode: item.currencyCode, rate: item.rate)
+        let isBookmarked = CoreDataManager.shared.returnBookMark(code: item.currencyCode)
+        cell.configure(currencyCode: item.currencyCode, rate: item.rate, fromVCBookMarkTapped: isBookmarked)
+
+        cell.closureBookmarkTapped = { [weak self] in
+            guard let self = self else {return}
+            self.viewModel.toggleBookmark(for: item.currencyCode)
+        }
         return cell
     }
 }
@@ -192,20 +158,10 @@ extension ViewController: UITableViewDataSource {
 extension ViewController: UISearchBarDelegate {
 
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        viewModel.filterRates(with: searchText)
-        tableView.reloadData()
+        viewModel.action?(.filter(text: searchText))
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        viewModel.filterRates(with: searchBar.text ?? "")
-        tableView.reloadData()
-        searchBar.resignFirstResponder()
-    }
-
-    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        searchBar.text = ""
-        viewModel.restoreRates()
-        tableView.reloadData()
         searchBar.resignFirstResponder()
     }
 }
